@@ -1,0 +1,38 @@
+html {
+  height: 100%;
+  width: 100%;
+}
+
+
+body {
+    font-family: 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', 'Helvetica',
+      'Arial', sans-serif;
+    margin: 0px;
+    padding: 0px;
+    height: 100%;
+    width: 100%;
+  }
+
+  :root {
+    --main-bg-color: rgb(34,37,41)
+  }
+
+  ::-webkit-scrollbar {
+    background-color: var( --main-bg-color);
+  }
+
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--main-bg-color);
+  }
+  
+  ::-webkit-scrollbar-corner {
+    background: var(--main-bg-color);
+  }
+
+  .mapboxgl-popup {
+      z-index: 999;
+  }
+  .mapboxgl-marker  {
+    z-index: 0;
+  }
