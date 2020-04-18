@@ -10,6 +10,7 @@ import ReactMapGL, { Marker, Popup, StaticMap, Source, Layer, FlyToInterpolator 
 import { getPopulation } from '../assests/countries'
 import Map2 from '../components/Map2'
 import codes from '../assests/codes'
+import Head from 'next/head';
 
 const tileServer = 'https://c.tile.openstreetmap.org/';
 
@@ -115,7 +116,9 @@ function HomePage({ data, data2 }: IProps) {
     const [type, setType] = useState<'Infected' | 'Deaths' | 'Recovered'>("Infected")
     return (
         <div className="tracker-flex" >
-
+            <Head>
+                <title>Covid19 - Tracker</title>
+            </Head>
             <Layout>
                 <div style={{ color: 'white', flexDirection: 'row', display: 'flex', height: '100%', width: '100%' }}>
                     <div className="LOL" style={{ display: 'flex', position: 'relative', height: 'calc(100vh - 60px)', flexDirection: 'column' }}>
@@ -125,7 +128,7 @@ function HomePage({ data, data2 }: IProps) {
                                 <h3 style={{ color: 'white', fontFamily: 'Poppins', margin: 0 }}>Coronavirus COVID-19</h3>
                                 <h5 style={{ color: 'grey', fontFamily: 'Poppins', margin: 0, padding: 0 }}>Global Cases</h5>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'row', width: '50%', margin: 'auto', justifyContent: 'space-around' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', width: '50%', maxWidth: 1000, margin: 'auto', justifyContent: 'space-around' }}>
                                 <div style={{ background: 'rgb(34,37,41)', padding: 15, borderRadius: 9 }}>
                                     <h6 style={{ color: 'rgb(194,49,54)', textAlign: 'start', margin: 0 }}>Infected</h6>
                                     <h2 style={{ textAlign: 'center', margin: 0 }}>{data.totalConfirmed.toLocaleString('en-US')}</h2>
@@ -546,7 +549,7 @@ const RedBubbleMarker = ({ width, region, onClick, selected }: { width: number, 
     </Marker>
 )
 
-export async function getServerSideProps(context) {
+export async function getStaticProps(context) {
     const res = await fetch('https://bing.com/covid/data');
     const data = await res.json()
 
