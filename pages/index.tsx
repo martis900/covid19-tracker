@@ -1,6 +1,6 @@
-//@ts-ignore
+//@ts-nocheck
 
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react'
 import fetch from 'isomorphic-unfetch';
 import Layout from '../components/Layout'
 import Link from 'next/link'
@@ -8,10 +8,7 @@ import dayjs from 'dayjs'
 import DeckGL, { TileLayer, BitmapLayer } from "deck.gl";
 import ReactMapGL, { Marker, Popup, StaticMap, Source, Layer, FlyToInterpolator } from 'react-map-gl';
 import { getPopulation } from '../assests/countries'
-
-import { ComposedChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Area, Bar, Line } from 'recharts'
-
-import Chart from '../components/Chart'
+import Map2 from '../components/Map2'
 import codes from '../assests/codes'
 
 const tileServer = 'https://c.tile.openstreetmap.org/';
@@ -25,7 +22,7 @@ export const INITIAL_VIEW_STATE = {
     bearing: 0
 };
 
-interface API {
+export interface API {
     id: string;
     displayName: string;
     areas: API[];
@@ -57,21 +54,44 @@ interface IHistoryData {
     readMe: string;
 }
 
-interface IProps {
-    data: API
-    history: any
+export interface Coordinates {
+    latitude: number;
+    longitude: number;
 }
 
-const radius = (opa) => {
-    let op = (opa) / 200
+export interface Today {
+    deaths: number;
+    confirmed: number;
+}
 
-    if (op > 100) {
-        op = 100
-    }
-    if (op < 20) {
-        op *= 3
-    }
-    return op
+export interface Calculated {
+    death_rate: number;
+    recovery_rate: number;
+    recovered_vs_death_ratio?: any;
+    cases_per_million_population: number;
+}
+
+export interface LatestData {
+    deaths: number;
+    confirmed: number;
+    recovered: number;
+    critical: number;
+    calculated: Calculated;
+}
+
+export interface API2 {
+    coordinates: Coordinates;
+    name: string;
+    code: string;
+    population: number;
+    updated_at: Date;
+    today: Today;
+    latest_data: LatestData;
+}
+
+interface IProps {
+    data: API
+    data2: Array<API2>,
 }
 
 const opacity = (opa) => {
@@ -82,133 +102,186 @@ const opacity = (opa) => {
     return op
 }
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibWFydGlzOTAwIiwiYSI6ImNrMTZtazN4ODBhNGUzbW1yc245dG9nZzYifQ.T2ImKPTOuImP5pW11SXoWg';
+const TOKEN = 'pk.eyJ1IjoiYWxla25hbWFydHluYXMiLCJhIjoiY2s5MXJpd3RzMDBsaDNtbnF6M29rMXlvYyJ9.fsq7LE6sCm9Sx5Zu2R5KZQ';
 
-function HomePage({ data }: IProps) {
+function HomePage({ data, data2 }: IProps) {
+    const [showPopup, setShowPopup]: any = useState<{ visible: boolean, region?: API, country?: boolean | string }>({ visible: false })
     const [viewport, setViewport]: any = useState({
-        width: 400,
-        height: 400,
         latitude: 50,
         longitude: 0,
-        zoom: 1,
-        visibilityConstraints: 1,
+        zoom: 2,
+        visibilityConstraints: 1
     });
     const [type, setType] = useState<'Infected' | 'Deaths' | 'Recovered'>("Infected")
-
     return (
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
+        <div className="tracker-flex" >
+
             <Layout>
-                <div style={{ color: 'white', flexDirection: 'row', display: 'flex', height: '100%' }}>
-                    <div style={{ display: 'flex', position: 'relative', height: 'calc(100vh - 112px)', flexDirection: 'column' }}>
-                        <h3 style={{ color: 'white', fontFamily: 'Poppins', marginBottom: 0 }}>Coronavirus COVID-19</h3>
-                        <h5 style={{ color: 'grey', fontFamily: 'Poppins', marginTop: 0 }}>Global Cases</h5>
+                <div style={{ color: 'white', flexDirection: 'row', display: 'flex', height: '100%', width: '100%' }}>
+                    <div className="LOL" style={{ display: 'flex', position: 'relative', height: 'calc(100vh - 60px)', flexDirection: 'column' }}>
 
-                        <DeckGL
-                            initialViewState={{
-                                longitude: -74.006,
-                                latitude: 40.7128,
-                                zoom: 12
-                            }}
-                            width={400}
-                            height={400}
-                            layers={() => {
-                                const { autoHighlight = true, highlightColor = [60, 60, 60, 40] } = this.props;
+                        <div className="aff" style={{ display: 'flex', flexDirection: 'row', padding: 20, justifyContent: 'space-around' }}>
+                            <div style={{ marginRight: 'auto', background: 'rgb(34,37,41)', borderRadius: 9, padding: 20 }}>
+                                <h3 style={{ color: 'white', fontFamily: 'Poppins', margin: 0 }}>Coronavirus COVID-19</h3>
+                                <h5 style={{ color: 'grey', fontFamily: 'Poppins', margin: 0, padding: 0 }}>Global Cases</h5>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'row', width: '50%', margin: 'auto', justifyContent: 'space-around' }}>
+                                <div style={{ background: 'rgb(34,37,41)', padding: 15, borderRadius: 9 }}>
+                                    <h6 style={{ color: 'rgb(194,49,54)', textAlign: 'start', margin: 0 }}>Infected</h6>
+                                    <h2 style={{ textAlign: 'center', margin: 0 }}>{data.totalConfirmed.toLocaleString('en-US')}</h2>
+                                    <div style={{ background: 'rgb(194,49,54)', height: 4, width: '80%', display: 'flex', marginTop: 5 }} />
+                                </div>
+                                <div style={{ background: 'rgb(34,37,41)', padding: 15, borderRadius: 9 }}>
+                                    <h6 style={{ color: 'rgb(251,200,128)', textAlign: 'start', margin: 0 }}>Active</h6>
+                                    <h2 style={{ textAlign: 'center', margin: 0 }}>{(data.totalConfirmed - data.totalDeaths - data.totalRecovered).toLocaleString('en-US')}</h2>
+                                    <div style={{ background: 'rgb(251,200,128)', height: 4, width: '80%', display: 'flex', marginTop: 5 }} />
+                                </div>
+                                <div style={{ background: 'rgb(34,37,41)', padding: 15, borderRadius: 9 }}>
+                                    <h5 style={{ color: 'rgb(79,77,83)', textAlign: 'start', margin: 0 }}>Deaths</h5>
+                                    <h2 style={{ textAlign: 'center', margin: 0 }}>{data.totalDeaths.toLocaleString('en-US')}</h2>
+                                    <div style={{ background: 'rgb(79,77,83)', height: 4, width: '80%', display: 'flex', marginTop: 5 }} />
+                                </div>
+                                <div style={{ background: 'rgb(34,37,41)', padding: 15, borderRadius: 9 }}>
+                                    <h5 style={{ color: 'rgb(73,193,172)', textAlign: 'start', margin: 0 }}>Recovered</h5>
+                                    <h2 style={{ textAlign: 'center', margin: 0 }}>{data.totalRecovered.toLocaleString('en-US')}</h2>
+                                    <div style={{ background: 'rgb(73,193,172)', height: 4, width: '80%', display: 'flex', marginTop: 5 }} />
+                                </div>
+                            </div>
 
-                                return [
-                                    new TileLayer({
-                                        pickable: true,
-                                        onHover: this._onHover,
-                                        autoHighlight,
-                                        highlightColor,
-                                        opacity: 1,
-                                        // https://wiki.openstreetmap.org/wiki/Zoom_levels
-                                        minZoom: 0,
-                                        maxZoom: 19,
-
-                                        renderSubLayers: props => {
-                                            const { x, y, z, bbox } = props.tile;
-                                            const { west, south, east, north } = bbox;
-
-                                            return new BitmapLayer(props, {
-                                                image: `${tileServer}/${z}/${x}/${y}.png`,
-                                                bounds: [west, south, east, north]
-                                            });
-                                        }
-                                    })
-                                ];
-                            }}
-                            controller={true}
-                        >
-                            {() => {
-                                const { x, y, hoveredObject } = this.state;
-                                const { sourceLayer, tile } = hoveredObject || {};
-                                return (
-                                    sourceLayer &&
-                                    tile && (
-                                        <div className="tooltip" style={{ left: x, top: y }}>
-                                            tile: x: {tile.x}, y: {tile.y}, z: {tile.z}
-                                        </div>
-                                    )
-                                );
-                            }}
-                        </DeckGL>
+                        </div>
+                        <Map data={data} viewport={viewport} setViewport={setViewport} showPopup={showPopup} setShowPopup={setShowPopup} />
+                        {/* <Map2 data={data} /> */}
                     </div>
+
                 </div>
+
             </Layout>
             {
                 useMemo(() => {
-                    return <div style={{ height: 'calc(100vh - 41px)', width: '100%', padding: 20, display: 'flex', flexDirection: 'column', background: 'rgb(34,37,41)' }}>
-                        <h3 style={{ color: 'white', fontFamily: 'Poppins' }}>Cases Info</h3>
+                    return <div className="list">
+                        {/* <h2 style={{ color: 'white', textAlign: 'center' }}>Total Confirmed</h2>
+                        <h1 style={{ color: 'red', textAlign: 'center', marginTop: 0 }}>{data.totalConfirmed.toLocaleString('en-US')}</h1> */}
 
-                        <span style={{ justifyContent: 'space-around', width: '100%', display: 'flex' }}>
-                            <button onClick={() => setType("Infected")}>Infected</button>
-                            <button onClick={() => setType("Deaths")}>Deaths</button>
-                            <button onClick={() => setType("Recovered")}>Recovered</button>
-                        </span>
+                        <h3 style={{ color: 'white', fontFamily: 'Poppins', textAlign: 'left', padding: 20 }}>Cases Info</h3>
+                        <TabBar setType={setType} type={type} />
 
-                        <ul style={{ margin: 0, paddingLeft: 30, paddingRight: 30, height: '100%', overflowY: 'scroll', scrollBehavior: 'smooth', display: 'flex', flexDirection: 'column' }}>
-                            <List data={data} type={type} handleAnimate={(long, lat) => setViewport({ ...viewport, latitude: lat, longitude: long, zoom: 4, transitionInterpolator: new FlyToInterpolator(), })} />
-                        </ul>
+                        <List data={data} data2={data2} type={type} setShowPopup={setShowPopup} handleAnimate={(long, lat) => setViewport({ ...viewport, latitude: lat, longitude: long, zoom: 4, transitionInterpolator: new FlyToInterpolator(), })} />
+
                     </div>
                 }, [data, type])
             }
+
         </div >
     )
 }
 
-function Map({ data, viewport, setViewport }: { data: API, viewport: any, setViewport: any }) {
 
-    const [showPopup, setShowPopup]: any = useState<{ visible: boolean, region?: API, country?: boolean | string }>({ visible: false })
+function TabBar({ setType, type }: any) {
+    return (
+        <div className='tabbar'>
+            <div className={`tabbar-item ` + (type === 'Infected' && 'selected')}>
+                <button className='tabbar-item-button' onClick={() => setType('Infected')}>Infected</button>
+            </div>
+            <div className={`tabbar-item ` + (type === "Deaths" && 'selected')} >
+                <button className='tabbar-item-button' onClick={() => setType("Deaths")}>Deaths</button>
+            </div>
+            <div className={`tabbar-item ` + (type === "Recovered" && 'selected')}>
+                <button className='tabbar-item-button' onClick={() => setType("Recovered")}>Recovered</button>
+            </div>
+
+            <style jsx>{`
+                .tabbar-item {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
+                }
+                .tabbar {
+                    display: flex;
+                    justify-content: space-around;
+                    background: rgb(20, 21, 23);
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin-left: 10px;
+                    margin-right: 10px;
+                }
+                .tabbar-item-button {
+                    border: none;
+                    outline: none;
+                    background: rgb(20, 21, 23);
+                    padding: 10px;
+                    border-radius: 8px;
+                    color: white;
+                    font-family: Poppins;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 15px;
+                }
+                .tabbar .selected::after {
+                    width: 80%;
+                    background: red;
+                }
+                .tabbar-item::after {
+                    align-self: center;
+                    display: flex;
+                    border-radius: 55px;
+                    width: 80%;
+                    content: '';
+                    transition: all 200ms ease-out;
+                    height: 5px;
+                }
+                .tabbar-item:hover::after {
+                    background: red;
+                }
+            `}</style>
+
+        </div>
+    )
+}
 
 
+function Map({ data, viewport, setViewport, showPopup, setShowPopup }: { data: API, viewport: any, setViewport: any }) {
+
+    const mapRef = useRef(null)
+    const [isLoaded, setIsLoaded] = useState(false)
+    const [hover, setHover] = useState(false)
+    useEffect(() => {
+        const map = mapRef.current.getMap();
+
+        if (isLoaded) {
+            console.log('INIT')
+            map.on('mouseenter', 'points2 ', (e) => {
+                console.log('123')
+                map.getCanvas().style.cursor = 'pointer';
+            })
+        }
+    }, [mapRef, isLoaded])
+
+    function handleOnLoad(evt) {
+        const map = mapRef.current.getMap();
+        setIsLoaded(true)
+    }
     return (
         <>
-            {showPopup.visible === true && <LocationDetails showPopup={showPopup} />}
+            {/* {showPopup.visible === true && <LocationDetails showPopup={showPopup} />} */}
             <ReactMapGL
                 {...viewport}
-                width="80vw"
+                ref={mapRef}
+                onLoad={handleOnLoad}
+                // onHover={(e) => {
+                //     const map = mapRef.current.getMap();
+                //     if (e?.features?.filter(item => item.layer.id === 'points').length > 0) {
+                //         setHover(true)
+                //     }
+                //     else {
+                //         setHover(false)
+                //     }
+
+                // }}
                 reuseMaps={false}
-                height='calc(100vh - 205px)'
-                onViewportChange={setViewport}
-                mapStyle={{
-                    "version": 8,
-                    "sources": {
-                        "raster-tiles": {
-                            "type": "raster",
-                            'tiles': [
-                                `https://c.tile.openstreetmap.org/${1}/${2}/${3}.png`
-                            ],
-                            "tileSize": 256
-                        }
-                    },
-                    "layers": [{
-                        "id": "test",
-                        "type": "raster",
-                        "source": "raster-tiles",
-                        "minzoom": 0,
-                        "maxzoom": 22
-                    }]
-                }}
+                height='calc(100vh - 210px)'
+                onViewportChange={view => setViewport(view)}
+                mapboxApiAccessToken={TOKEN}
+                mapStyle="mapbox://styles/mapbox/dark-v9"
                 onClick={(e) => {
                     if (e?.features?.[0]?.properties?.title) {
                         if (data.areas.filter(item => item.displayName === e?.features?.[0]?.properties?.title).length > 0) {
@@ -330,6 +403,7 @@ function Map({ data, viewport, setViewport }: { data: API, viewport: any, setVie
                     />
                 </Source>
 
+
                 {showPopup.visible && <Popup
                     latitude={showPopup.region.lat}
                     longitude={showPopup.region.long}
@@ -348,19 +422,35 @@ function Map({ data, viewport, setViewport }: { data: API, viewport: any, setVie
                             <h3 style={{ color: 'black', paddingLeft: 10 }}>{showPopup.region.displayName}</h3>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'row', marginTop: -30, marginBottom: -20 }}>
-                            <h2 style={{ color: 'red' }}>{showPopup.region.totalConfirmed.toLocaleString('en-US')}</h2>
-                            <h2 style={{ color: 'black', paddingLeft: 10 }}>INFECTED</h2>
+                            <h4 style={{ color: 'rgb(194, 49, 54)' }}>{showPopup.region.totalConfirmed.toLocaleString('en-US')}</h4>
+                            <h4 style={{ color: 'black', paddingLeft: 10, margin: 'auto 0 auto auto' }}>INFECTED</h4>
                         </div>
-                    </div>
+                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: -15, marginBottom: -20 }}>
+                            <h4 style={{ color: 'rgb(251, 200, 128)' }}>{(showPopup.region.totalConfirmed - showPopup.region.totalDeaths - showPopup.region.totalRecovered).toLocaleString('en-US')}</h4>
+                            <h4 style={{ color: 'black', paddingLeft: 10, margin: 'auto 0 auto auto' }}>ACTIVE</h4>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: -15, marginBottom: -20 }}>
+                            <h4 style={{ color: 'rgb(79, 77, 83)' }}>{showPopup.region.totalDeaths?.toLocaleString('en-US') ?? 0}</h4>
+                            <h4 style={{ color: 'black', paddingLeft: 10, margin: 'auto 0 auto auto' }}>DEATHS</h4>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: -15, marginBottom: -20 }}>
+                            <h4 style={{ color: 'rgb(73, 193, 172)' }}>{showPopup.region.totalRecovered?.toLocaleString('en-US') ?? 0}</h4>
+                            <h4 style={{ color: 'black', paddingLeft: 10, margin: 'auto 0 auto auto' }}>RECOVERED</h4>
+                        </div>
+                        {showPopup.country === true && <h3 style={{ flex: 1, color: 'black', fontSize: 12, marginTop: 4 }}>
+                            <b>
+                                Population:
+                                </b> {Number((showPopup.region.totalConfirmed * 100) / getPopulation(showPopup.region.displayName)).toFixed(2)}%
+                            </h3>
+                        }</div>
                 </Popup>}
-                {/* {useMemo(() => <RenderCountries data={data} showPopup={showPopup} setShowPopup={setShowPopup} />, [data])} */}
-                {/* {useMemo(() => <RenderCities data={data} showPopup={showPopup} setShowPopup={setShowPopup} />, [data])} */}
+
             </ReactMapGL>
         </>
     )
 }
 
-function List({ data, type, handleAnimate }: any) {
+function List({ data, data2, type, handleAnimate, setShowPopup }: { data: any, data2: Array<API2>, type: any, handleAniamte: any, setShowPopup: any }) {
 
     function sorted() {
         if (type === "Infected") {
@@ -375,15 +465,21 @@ function List({ data, type, handleAnimate }: any) {
     }
 
     if (sorted.length > 0) return null
-    return sorted().map((area: API) => (
-        <li style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-            <div style={{ borderRadius: '50%', width: 20, height: 20, overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleAnimate(area.long, area.lat)}>
-                <img src={`https://www.countryflags.io/${codes(area.displayName) || 'us'}/shiny/64.png`} alt="123" style={{ width: '160%', height: '160%', objectFit: 'cover', borderRadius: '50%' }} />
-            </div>
-            <h5 style={{ paddingLeft: 15, color: 'grey', margin: '0 auto 0 0' }}>{area.displayName}</h5>
-            <h5 style={{ color: 'white' }}>{type === "Infected" ? area.totalConfirmed?.toLocaleString('en-US') : type === "Recovered" ? area.totalRecovered?.toLocaleString('en-US') : type === "Deaths" && area.totalDeaths?.toLocaleString('en-US')}</h5>
-        </li>
-    ))
+    return <ul style={{ margin: 0, paddingLeft: 10, height: '100%', overflowY: 'scroll', scrollBehavior: 'smooth', display: 'flex', flexDirection: 'column' }}>
+        {sorted().map((area: API) => (
+            <li style={{ display: '-webkit-flex', flex: '1 0 auto', flexDirection: 'row', alignItems: 'center', background: 'rgb(28, 30, 34)', cursor: 'pointer', borderRadius: 8, marginTop: 10, paddingLeft: 20, paddingRight: 20 }} onClick={() => {
+                setShowPopup({ visible: true, region: data.areas.filter(item => item.displayName === area.displayName)[0], country: true })
+                handleAnimate(area.long, area.lat)
+            }}>
+                <div style={{ borderRadius: '50%', width: 20, height: 20, overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                    <img src={`https://www.countryflags.io/${codes(area.displayName) || 'us'}/shiny/64.png`} alt="123" style={{ width: '160%', height: '160%', objectFit: 'cover', borderRadius: '50%' }} />
+                </div>
+
+                <h5 style={{ paddingLeft: 15, color: 'rgba(255,255,255,0.7)', margin: '0 auto 0 0' }}>{area.displayName}</h5>
+                <h5 style={{ color: 'white' }}>{type === "Infected" ? area.totalConfirmed?.toLocaleString('en-US') : type === "Recovered" ? area.totalRecovered?.toLocaleString('en-US') : type === "Deaths" && area.totalDeaths?.toLocaleString('en-US')}</h5>
+            </li>
+        ))}
+    </ul>
 }
 
 const LocationDetails = ({ showPopup }: any) => {
@@ -392,7 +488,7 @@ const LocationDetails = ({ showPopup }: any) => {
             width: 400,
             height: 200,
             position: 'absolute',
-            top: 25,
+            bottom: 25,
             left: 25,
             backgroundColor: 'white',
             zIndex: 99999999,
@@ -450,11 +546,14 @@ const RedBubbleMarker = ({ width, region, onClick, selected }: { width: number, 
     </Marker>
 )
 
-export async function getStaticProps() {
+export async function getServerSideProps(context) {
     const res = await fetch('https://bing.com/covid/data');
     const data = await res.json()
 
-    return { props: { data } }
+    const res2 = await fetch('https://corona-api.com/countries');
+    const data2 = await res2.json();
+
+    return { props: { data, data2: data2.data } }
 }
 
 export default React.memo(HomePage)
