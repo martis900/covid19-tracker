@@ -40,7 +40,7 @@ function StocksPage({ data }) {
             <div style={{ padding: 20, display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', width: '100%', margin: 'auto' }}>
 
-                    <div style={{ flexDirection: 'column', width: '50%', margin: 'auto' }}>
+                    <div className="container">
                         <div style={{ marginRight: 'auto', background: 'rgb(34,37,41)', borderRadius: 9, padding: 20, alignSelf: 'center' }}>
                             <h3 style={{ color: 'white', fontFamily: 'Poppins', margin: 0 }}>Gaming News</h3>
                             <h5 style={{ color: 'grey', fontFamily: 'Poppins', margin: 0, padding: 0 }}>Global</h5>
@@ -52,7 +52,7 @@ function StocksPage({ data }) {
                                     <div style={{ marginRight: 'auto', background: 'rgb(34,37,41)', borderRadius: 9, padding: 20, alignSelf: 'center', marginTop: 35, width: '100%' }}>
                                         <div style={{ flexDirection: 'row', display: 'flex' }}>
                                             <h4 style={{ color: 'white', marginRight: 'auto' }}>{item.headline}</h4>
-                                            {!!item.media && <img src={item.media} style={{ borderRadius: 8, width: 100, objectFit: 'fill' }} />}
+                                            {!!item.media && <img src={item.media} style={{ borderRadius: 8, width: 100, objectFit: 'cover' }} />}
                                         </div>
                                         <h5 style={{ color: 'white' }}>{item.publication} <span style={{ paddingLeft: 20 }} /> {item.time}</h5>
                                     </div>
@@ -75,7 +75,20 @@ function StocksPage({ data }) {
                     min-height: 200px;
                     border-radius: 8px;
                     margin: 0 auto 0 0;
-                }`}</style>
+                }
+                
+                .container {
+                    flex-direction: column;
+                    width: 50%;
+                    margin: auto;
+                }
+
+                @media only screen and (max-width: 1056px) {
+                    .container  {
+                        width: 100%;
+                    }
+                }
+                `}</style>
         </Layout>
     )
 }

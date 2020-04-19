@@ -23,7 +23,7 @@ const Header = () => (
             <a><h5 style={{ color: 'white' }}>Stock Market</h5></a>
         </Link>
         <Link href="/courses" >
-            <div className="nav-item" style={{ position: 'relative' }}>
+            <div className="nav-item" style={{ position: 'relative', cursor: 'pointer' }}>
                 <a ><h5 style={{ color: 'white' }}>Free Courses</h5></a>
 
                 {/* <div className="dropdown">
